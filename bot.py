@@ -54,7 +54,7 @@ def alarm(context: CallbackContext) -> None:
         logger.info("Check not Successful. Try again later.")
 
 def start(update: Update, context: CallbackContext) -> int:
-    reply_keyboard = [[' Zalando', ' Simple Update Check', ' Bürgeramt', ' Joblist']]
+    reply_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Bürgeramt', '🔄 Joblist']]
 
     update.message.reply_text(
         'Hi! Welcome to the Update Bot\n'
@@ -72,7 +72,7 @@ def service(update: Update, context: CallbackContext) -> int:
     logger.info("User %s requested Service: %s", user.first_name, update.message.text)
     context.user_data['service'] = update.message.text
 
-    if update.message.text == " Zalando":
+    if update.message.text == "🔄 Zalando":
         sizelist = []
         context.user_data['sizes'] = sizelist
         update.message.reply_text(
@@ -80,7 +80,7 @@ def service(update: Update, context: CallbackContext) -> int:
             reply_markup=ReplyKeyboardRemove(),
         )
         return LINK
-    elif update.message.text == " Joblist":
+    elif update.message.text == "🔄 Joblist":
         keyboard = []
         for Job in context.job_queue.jobs():
             if update.message.chat_id == Job.context.ChatID:
@@ -93,11 +93,11 @@ def service(update: Update, context: CallbackContext) -> int:
             'Look at all the Jobs',
             reply_markup=ReplyKeyboardMarkup([keyboard], one_time_keyboard=True, resize_keyboard=True, input_field_placeholder='Select Job to delete:'))
         return JOBLIST
-    elif update.message.text == " Simple Update Check":
+    elif update.message.text == "🔄 Simple Update Check":
         update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website.'+
             'You may get "false positives", if the website includes some sort of timestamp.\n\nPlease send me the link to the website.')
         return SUC_LINK
-    elif update.message.text == " Bürgeramt":
+    elif update.message.text == "🔄 Bürgeramt":
         update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website.'+
             'You may get "false positives", if the website includes some sort of timestamp.\n\nPlease send me the link to the website.')
         return BA_SELECT
@@ -111,7 +111,7 @@ def joblist(update: Update, context: CallbackContext) -> int:
                 Job.schedule_removal()
                 update.message.reply_text("Job removed")
                 logger.info('%s Job "%s" has been removed by User %s', str(Job.context.Service), str(Job.context.Name), user.first_name)
-    reply_keyboard = [[' Zalando', ' Simple Update Check', ' Bürgeramt', ' Joblist']]
+    reply_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Bürgeramt', '🔄 Joblist']]
     update.message.reply_text(
         'Send /cancel to stop talking to me.\n\n'
         'What service do you need?',
@@ -305,7 +305,7 @@ def main() -> None:
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            SERVICE: [MessageHandler(Filters.regex('^( Zalando| Simple Update Check| Bürgeramt| Joblist)$'), service)],
+            SERVICE: [MessageHandler(Filters.regex('^(🔄 Zalando|🔄 Simple Update Check|🔄 Bürgeramt|🔄 Joblist)$'), service)],
             LINK: [MessageHandler(Filters.text & ~Filters.command, link)],
             SIZES: [CommandHandler("done", sizes_done), MessageHandler(Filters.regex('Done'), sizes_done), MessageHandler(Filters.text, sizes)],
             INTERVAL: [MessageHandler(Filters.text & ~Filters.command, interval)],

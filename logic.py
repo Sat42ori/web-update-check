@@ -99,4 +99,3 @@ def test(URL, search_sizes: List):
         print ("Check not Successful. Try again later.")
 
 #test("https://www.zalando.de/the-north-face-hooded-dress-zumu-freizeitkleid-black-th321c007-q11.html",['M','XS'])
-
