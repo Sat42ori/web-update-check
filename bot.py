@@ -20,7 +20,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-SERVICE, LINK, SIZES, INTERVAL, JOBLIST, SUC_LINK, SUC_INTERVAL, BA_SELECT = range(8)
+SERVICE, LINK, SIZES, INTERVAL, JOBLIST, SUC_LINK, SUC_INTERVAL, SFS_LINK, SFS_SEARCHTERM, SFS_INTERVAL = range(10)
 
 def alarm(context: CallbackContext) -> None:
     """Send the alarm message, if there is an Update"""
@@ -54,7 +54,7 @@ def alarm(context: CallbackContext) -> None:
         logger.info("Check not Successful. Try again later.")
 
 def start(update: Update, context: CallbackContext) -> int:
-    reply_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Bürgeramt', '🔄 Joblist']]
+    reply_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Search for ...', '🔄 Joblist']]
 
     update.message.reply_text(
         'Hi! Welcome to the Update Bot\n'
@@ -67,7 +67,7 @@ def start(update: Update, context: CallbackContext) -> int:
 
     return SERVICE
 
-def build_menu(buttons,n_cols,header_buttons=None,footer_buttons=None):
+def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
   menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
   if header_buttons:
     menu.insert(0, header_buttons)
@@ -106,11 +106,10 @@ def service(update: Update, context: CallbackContext) -> int:
         update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website.'+
             'You may get "false positives", if the website includes some sort of timestamp.\n\nPlease send me the link to the website.')
         return SUC_LINK
-    elif update.message.text == "🔄 Bürgeramt":
-        update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website.'+
-            'You may get "false positives", if the website includes some sort of timestamp.\n\nPlease send me the link to the website.')
-        return BA_SELECT
-
+    elif update.message.text == "🔄 Search for ...":
+        update.message.reply_text('With "Search for ..." you can limit the query to certain words. '+
+            '\n\nPlease send me the link to the website.')
+        return SFS_LINK
 
 def joblist(update: Update, context: CallbackContext) -> int:
     user = update.message.from_user
@@ -120,7 +119,7 @@ def joblist(update: Update, context: CallbackContext) -> int:
                 Job.schedule_removal()
                 update.message.reply_text("Job removed")
                 logger.info('%s Job "%s" has been removed by User %s', str(Job.context.Service), str(Job.context.Name), user.first_name)
-    reply_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Bürgeramt', '🔄 Joblist']]
+    reply_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Search for ...', '🔄 Joblist']]
     update.message.reply_text(
         'Send /cancel to stop talking to me.\n\n'
         'What service do you need?',
@@ -129,6 +128,7 @@ def joblist(update: Update, context: CallbackContext) -> int:
         )
     )
     return SERVICE
+
 """
 Implementation of SUC specific functions 
 """
@@ -169,7 +169,6 @@ def suc_link(update: Update, context: CallbackContext) -> int:
 
     return SUC_INTERVAL
 
-
 def suc_interval(update: Update, context: CallbackContext) -> int:
     """Stores the info about the user and ends the conversation."""
     user = update.message.from_user
@@ -183,13 +182,14 @@ def suc_interval(update: Update, context: CallbackContext) -> int:
             context.user_data['link'],
             "")
         context.job_queue.run_repeating(suc_alarm, int(update.message.text), context=a, name=str(chat_id))
-        update.message.reply_text('Searching for updates on "' + context.user_data['link'] + '" every ' + str(update.message.text) + ' seconds.')
+        tmp_msg = 'Searching for updates on "' + context.user_data['link'] + '" every ' + str(update.message.text) + ' seconds.'
+        update.message.reply_text(tmp_msg)
 
     except (IndexError, ValueError):
         update.message.reply_text('There was a problem with your Interval. Please send me the interval in seconds.')
         return INTERVAL
     update.message.reply_text('Thank you! Press /start to start again.', reply_markup=ReplyKeyboardRemove())
-    logger.info('Job from %s saved. Searching for updates on "' + context.user_data['link'] + '" every ' + str(update.message.text) + ' seconds.')
+    logger.info('Job from %s saved.' + tmp_msg)
     return ConversationHandler.END
 
 def suc_alarm(context: CallbackContext) -> None:
@@ -207,6 +207,102 @@ def suc_alarm(context: CallbackContext) -> None:
             
     except:
         logger.info("Check not Successful. Try again later.")
+
+"""
+Implementation of SFS specific functions
+"""
+class SFS_Assignment:
+  def __init__(self, ChatID, Service, Name, Link, Searchterm, Stored_Update):
+    self.ChatID = ChatID
+    self.Service = Service
+    self.Name = Name
+    self.Link = Link
+    self.Searchterm = Searchterm
+    self.Stored_Update = Stored_Update
+
+def sfs_link(update: Update, context: CallbackContext):
+    """Stores the Link"""
+    user = update.message.from_user
+    chat_id = update.message.chat_id
+    
+    logger.info("%s Link received from %s: %s", context.user_data['service'], user.first_name, update.message.text)
+    try:
+        data = download(update.message.text)
+        context.user_data['link'] = update.message.text
+    except:
+        update.message.reply_text("Something has gone terribly wrong. Maybe your link is not valid. Try again.")
+        logger.info("Link from %s invalid and failed to download.", user.first_name)
+        return LINK
+    if data != None:
+        update.message.reply_text(
+            "I've checked your link and... everything checks out.")
+    else:
+        update.message.reply_text("Something has gone terribly wrong. There was no content on this website. Maybe your link is not valid. Try again.")
+        logger.info("Link from %s invalid and content empty", user.first_name)
+        return LINK
+    logger.info('%s Link from %s is valid.', context.user_data['service'], user.first_name)
+    #update.message.reply_text('Now send me as many Sizes as you want and press /finish if you are done.')
+    update.message.reply_text(
+        'Great! Now send me the exact term(s) you want to search for. You will be notified if there are any changes concerning your search term (eg. "Out of Stock" or "Add to Shopping Cart")')
+
+    return SFS_SEARCHTERM
+
+def sfs_searchterm(update: Update, context: CallbackContext):
+    user = update.message.from_user
+    
+    context.user_data['Searchterm'] = update.message.text
+    context.user_data['name'] = update.message.text + ' @ ' + context.user_data['link']
+    logger.info("Searchterm from %s is: %s", user.first_name, update.message.text)
+    update.message.reply_text(
+            'Okay, Thanks! Now I need your Interval in Seconds',
+            reply_markup=ReplyKeyboardMarkup([["3","5","10","30","60","300","600","1800"]], one_time_keyboard=True, resize_keyboard=True, input_field_placeholder='Select Inteval' ))
+    return SFS_INTERVAL
+
+def sfs_interval(update: Update, context: CallbackContext) -> int:
+    """Stores the info about the user and ends the conversation."""
+    user = update.message.from_user
+    chat_id = update.message.chat_id
+    logger.info("Interval from %s: %s", user.first_name, update.message.text)
+    try:
+        a = SFS_Assignment(
+            chat_id,
+            context.user_data['service'],
+            context.user_data['name'],
+            context.user_data['link'],
+            context.user_data['Searchterm'],
+            bool
+            )
+        context.job_queue.run_repeating(sfs_alarm, int(update.message.text), context=a, name=str(chat_id))
+        tmp_msg = 'Searching for updates on "' + context.user_data['Searchterm'] + '" @ ' + context.user_data['link'] + ' every ' + str(update.message.text) + ' seconds.'
+        update.message.reply_text(tmp_msg)
+
+    except (IndexError, ValueError):
+        update.message.reply_text('There was a problem with your Interval. Please send me the interval in seconds.')
+        return INTERVAL
+    update.message.reply_text('Thank you! Press /start to start again.', reply_markup=ReplyKeyboardRemove())
+    logger.info('Job from %s saved.' + tmp_msg)
+    return ConversationHandler.END
+
+def sfs_alarm(context: CallbackContext) -> None:
+    """Send the alarm message, if there is an Update"""
+    job = context.job
+    Term_Present = bool
+    try:
+        data = download(job.context.Link)
+        if data != None and job.context.Searchterm in data:
+            Term_Present = True
+        else:
+            Term_Present = False
+        if Term_Present != job.context.Stored_Update:
+            context.bot.send_message(job.context.ChatID, text= "Update for " + job.context.Link)
+            logger.info('%s Job "%s" found Update.', str(job.context.Service), str(job.context.Link))
+            job.context.Stored_Update = Term_Present
+        else:
+            logger.info('%s Job "%s" found no Update.', str(job.context.Service), str(job.context.Link))
+            
+    except:
+        logger.info("Check not Successful. Try again later.")
+
 
 """
 Implementation of Zalando specific functions 
@@ -319,13 +415,16 @@ def main() -> None:
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            SERVICE: [MessageHandler(Filters.regex('^(🔄 Zalando|🔄 Simple Update Check|🔄 Bürgeramt|🔄 Joblist)$'), service)],
+            SERVICE: [MessageHandler(Filters.regex('^(🔄 Zalando|🔄 Simple Update Check|🔄 Search for ...|🔄 Joblist)$'), service)],
             LINK: [MessageHandler(Filters.text & ~Filters.command, link)],
             SIZES: [CommandHandler("done", sizes_done), MessageHandler(Filters.regex('Done'), sizes_done), MessageHandler(Filters.text, sizes)],
             INTERVAL: [MessageHandler(Filters.text & ~Filters.command, interval)],
             JOBLIST: [MessageHandler(Filters.regex('Cancel'), cancel),MessageHandler(Filters.text & ~Filters.command, joblist)],
             SUC_LINK: [MessageHandler(Filters.text & ~Filters.command, suc_link)],
             SUC_INTERVAL: [MessageHandler(Filters.text & ~Filters.command, suc_interval)],
+            SFS_LINK: [MessageHandler(Filters.text & ~Filters.command, sfs_link)],
+            SFS_SEARCHTERM: [MessageHandler(Filters.text & ~Filters.command, sfs_searchterm)],
+            SFS_INTERVAL: [MessageHandler(Filters.text & ~Filters.command, sfs_interval)],
         },
         fallbacks=[CommandHandler('cancel', cancel),CommandHandler('start', start)],
     )
