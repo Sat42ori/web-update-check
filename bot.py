@@ -67,6 +67,14 @@ def start(update: Update, context: CallbackContext) -> int:
 
     return SERVICE
 
+def build_menu(buttons,n_cols,header_buttons=None,footer_buttons=None):
+  menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
+  if header_buttons:
+    menu.insert(0, header_buttons)
+  if footer_buttons:
+    menu.append(footer_buttons)
+  return menu
+
 def service(update: Update, context: CallbackContext) -> int:
     user = update.message.from_user
     logger.info("User %s requested Service: %s", user.first_name, update.message.text)
@@ -82,16 +90,17 @@ def service(update: Update, context: CallbackContext) -> int:
         return LINK
     elif update.message.text == "🔄 Joblist":
         keyboard = []
+        keyboard_list = []
         for Job in context.job_queue.jobs():
             if update.message.chat_id == Job.context.ChatID:
                 keyboard.append(Job.context.Name)
         if keyboard == []:
             update.message.reply_text('No Jobs here, maybe you want to create one?')
             return SERVICE
-        keyboard.append("Cancel")
+        keyboard.append("Cancel")        
         update.message.reply_text(
-            'Look at all the Jobs',
-            reply_markup=ReplyKeyboardMarkup([keyboard], one_time_keyboard=True, resize_keyboard=True, input_field_placeholder='Select Job to delete:'))
+            'Look at all the Jobs! To remove a Job simply select it from the keyboard.',
+            reply_markup=ReplyKeyboardMarkup(build_menu(keyboard,n_cols=1), one_time_keyboard=True, resize_keyboard=False, input_field_placeholder='Select Job to remove:'))
         return JOBLIST
     elif update.message.text == "🔄 Simple Update Check":
         update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website.'+
@@ -141,11 +150,16 @@ def suc_link(update: Update, context: CallbackContext) -> int:
         data = download(update.message.text)
         context.user_data['link'] = update.message.text
         context.user_data['name'] = update.message.text
+    except:
+        update.message.reply_text("Something has gone terribly wrong. Maybe your link is not valid. Try again.")
+        logger.info("Link from %s invalid and failed to download.", user.first_name)
+        return LINK
+    if data != None:
         update.message.reply_text(
             "I've checked your link and... everything checks out.")
-    except:
-        update.message.reply_text("Something has gone terribly wrong. Maybe your link is not a Zalando link. Try again.")
-        logger.info("Link from %s invalid", user.first_name)
+    else:
+        update.message.reply_text("Something has gone terribly wrong. There was no content on this website. Maybe your link is not valid. Try again.")
+        logger.info("Link from %s invalid and content empty", user.first_name)
         return LINK
     logger.info('%s Link from %s is valid.', context.user_data['service'], user.first_name)
     #update.message.reply_text('Now send me as many Sizes as you want and press /finish if you are done.')
@@ -169,7 +183,7 @@ def suc_interval(update: Update, context: CallbackContext) -> int:
             context.user_data['link'],
             "")
         context.job_queue.run_repeating(suc_alarm, int(update.message.text), context=a, name=str(chat_id))
-        update.message.reply_text('Searching for updates on "' + context.user_data['link'] + ' every ' + str(update.message.text) + ' seconds.')
+        update.message.reply_text('Searching for updates on "' + context.user_data['link'] + '" every ' + str(update.message.text) + ' seconds.')
 
     except (IndexError, ValueError):
         update.message.reply_text('There was a problem with your Interval. Please send me the interval in seconds.')
