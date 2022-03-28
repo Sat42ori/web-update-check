@@ -53,7 +53,8 @@ def alarm(context: CallbackContext) -> None:
     except:
         logger.info("Check not Successful. Try again later.")
 
-def start(update: Update, context: CallbackContext) -> int:
+def start(update: Update, context: CallbackContext):
+    """Sends the initial Message to the user"""
     reply_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Search for ...', '🔄 Joblist']]
 
     update.message.reply_text(
@@ -68,14 +69,16 @@ def start(update: Update, context: CallbackContext) -> int:
     return SERVICE
 
 def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
-  menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
-  if header_buttons:
-    menu.insert(0, header_buttons)
-  if footer_buttons:
-    menu.append(footer_buttons)
-  return menu
+    """Builds a menu for inline keyboards"""
+    menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
+    if header_buttons:
+        menu.insert(0, header_buttons)
+    if footer_buttons:
+        menu.append(footer_buttons)
+    return menu
 
-def service(update: Update, context: CallbackContext) -> int:
+def service(update: Update, context: CallbackContext):
+    """Processes the user input regarding the selected service"""
     user = update.message.from_user
     logger.info("User %s requested Service: %s", user.first_name, update.message.text)
     context.user_data['service'] = update.message.text
@@ -103,7 +106,7 @@ def service(update: Update, context: CallbackContext) -> int:
             reply_markup=ReplyKeyboardMarkup(build_menu(keyboard,n_cols=1), one_time_keyboard=True, resize_keyboard=False, input_field_placeholder='Select Job to remove:'))
         return JOBLIST
     elif update.message.text == "🔄 Simple Update Check":
-        update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website.'+
+        update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website. '+
             'You may get "false positives", if the website includes some sort of timestamp.\n\nPlease send me the link to the website.')
         return SUC_LINK
     elif update.message.text == "🔄 Search for ...":
@@ -111,7 +114,8 @@ def service(update: Update, context: CallbackContext) -> int:
             '\n\nPlease send me the link to the website.')
         return SFS_LINK
 
-def joblist(update: Update, context: CallbackContext) -> int:
+def joblist(update: Update, context: CallbackContext):
+    """Processes the user input regarding the joblist"""
     user = update.message.from_user
     for Job in context.job_queue.jobs():
         if update.message.text == Job.context.Name:
@@ -141,7 +145,7 @@ class SUC_Assignment:
     self.Stored_Update = Stored_Update
 
 def suc_link(update: Update, context: CallbackContext) -> int:
-    """Stores the Link and asks for a location."""
+    """Stores the Link provided by the user."""
     user = update.message.from_user
     chat_id = update.message.chat_id
     
@@ -170,7 +174,7 @@ def suc_link(update: Update, context: CallbackContext) -> int:
     return SUC_INTERVAL
 
 def suc_interval(update: Update, context: CallbackContext) -> int:
-    """Stores the info about the user and ends the conversation."""
+    """Stores the interval provided by the user, creates a scheduled update and ends the conversation."""
     user = update.message.from_user
     chat_id = update.message.chat_id
     logger.info("Interval from %s: %s", user.first_name, update.message.text)
@@ -221,7 +225,7 @@ class SFS_Assignment:
     self.Stored_Update = Stored_Update
 
 def sfs_link(update: Update, context: CallbackContext):
-    """Stores the Link"""
+    """Stores the Link provided by the user."""
     user = update.message.from_user
     chat_id = update.message.chat_id
     
@@ -248,6 +252,7 @@ def sfs_link(update: Update, context: CallbackContext):
     return SFS_SEARCHTERM
 
 def sfs_searchterm(update: Update, context: CallbackContext):
+    """Stores the searchterm provided by the user."""
     user = update.message.from_user
     
     context.user_data['Searchterm'] = update.message.text
@@ -259,7 +264,7 @@ def sfs_searchterm(update: Update, context: CallbackContext):
     return SFS_INTERVAL
 
 def sfs_interval(update: Update, context: CallbackContext) -> int:
-    """Stores the info about the user and ends the conversation."""
+    """Stores the interval provided by the user, creates a scheduled update and ends the conversation."""
     user = update.message.from_user
     chat_id = update.message.chat_id
     logger.info("Interval from %s: %s", user.first_name, update.message.text)
@@ -307,8 +312,17 @@ def sfs_alarm(context: CallbackContext) -> None:
 """
 Implementation of Zalando specific functions 
 """
+class Assignment:
+  def __init__(self, ChatID, Service, Link, Sizes, Name, Stored_Update):
+    self.ChatID = ChatID
+    self.Service = Service
+    self.Link = Link
+    self.Sizes = Sizes
+    self.Name = Name
+    self.Stored_Update = Stored_Update
+
 def link(update: Update, context: CallbackContext) -> int:
-    """Stores the Link and asks for a location."""
+    """Stores the Link provided by the user."""
     user = update.message.from_user
     chat_id = update.message.chat_id
     data = download_zalando_json(update.message.text)
@@ -341,7 +355,7 @@ def link(update: Update, context: CallbackContext) -> int:
     return SIZES
 
 def sizes(update: Update, context: CallbackContext) -> int:
-    """Stores the Link and asks for a location."""
+    """Stores the Sizes provided by the user."""
     user = update.message.from_user
     chat_id = update.message.chat_id
     
@@ -351,7 +365,7 @@ def sizes(update: Update, context: CallbackContext) -> int:
     return SIZES
 
 def sizes_done(update: Update, context: CallbackContext) -> int:
-    """Stores the Link and asks for a location."""
+    """Determines if the user input (regarding the sizes) was valid and asks for the interval."""
     if context.user_data['sizes'] == []:
         update.message.reply_text('I need at least one Size to look for. Try again.')
         return SIZES
@@ -362,17 +376,8 @@ def sizes_done(update: Update, context: CallbackContext) -> int:
         reply_markup=ReplyKeyboardMarkup([["3","5","10","30","60","300","600","1800"]], one_time_keyboard=True, resize_keyboard=True, input_field_placeholder='Select Inteval' ))
     return INTERVAL
 
-class Assignment:
-  def __init__(self, ChatID, Service, Link, Sizes, Name, Stored_Update):
-    self.ChatID = ChatID
-    self.Service = Service
-    self.Link = Link
-    self.Sizes = Sizes
-    self.Name = Name
-    self.Stored_Update = Stored_Update
-
 def interval(update: Update, context: CallbackContext) -> int:
-    """Stores the info about the user and ends the conversation."""
+    """Stores the interval provided by the user, creates a scheduled update and ends the conversation."""
     user = update.message.from_user
     chat_id = update.message.chat_id
     logger.info("Interval from %s: %s", user.first_name, update.message.text)
