@@ -20,7 +20,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-SERVICE, LINK, SIZES, INTERVAL, JOBLIST, SUC_LINK, SUC_INTERVAL, SFS_LINK, SFS_SEARCHTERM, SFS_INTERVAL = range(10)
+SERVICE, LINK, SIZES, INTERVAL, JOBLIST, JOBSELECT, SUC_LINK, SUC_INTERVAL, SFS_LINK, SFS_SEARCHTERM, SFS_INTERVAL = range(11)
 
 def alarm(context: CallbackContext) -> None:
     """Send the alarm message, if there is an Update"""
@@ -43,12 +43,15 @@ def alarm(context: CallbackContext) -> None:
             if was_soldout != is_soldout:
                 context.bot.send_message(job.context.ChatID, text= "Update for " + job.context.Name + message + "\n" + job.context.Link)
                 logger.info('%s Job "%s" found Availability-Update: %s', str(job.context.Service), str(job.context.Name), str(available_sizes))
-                
+                job.context.Statistics["count"] += 1 
+                job.context.Statistics["alarm"] += 1 
             else:
                 logger.info('%s Job "%s" found irrelevant Availability-Update: %s', str(job.context.Service), str(job.context.Name), str(available_sizes))
+                job.context.Statistics["count"] += 1
             job.context.Stored_Update = available_sizes
         else:
             logger.info('%s Job "%s" found no Update. Stored Availability-Update: %s', str(job.context.Service), str(job.context.Name), str(job.context.Stored_Update))
+            job.context.Statistics["count"] += 1
             
     except:
         logger.info("Check not Successful. Try again later.")
@@ -102,8 +105,8 @@ def service(update: Update, context: CallbackContext):
             return SERVICE
         keyboard.append("Cancel")        
         update.message.reply_text(
-            'Look at all the Jobs! To remove a Job simply select it from the keyboard.',
-            reply_markup=ReplyKeyboardMarkup(build_menu(keyboard,n_cols=1), one_time_keyboard=True, resize_keyboard=False, input_field_placeholder='Select Job to remove:'))
+            'Look at all the Jobs! To view details from a Job simply select it on the keyboard.',
+            reply_markup=ReplyKeyboardMarkup(build_menu(keyboard,n_cols=1), one_time_keyboard=True, resize_keyboard=False, input_field_placeholder='Select a Job:'))
         return JOBLIST
     elif update.message.text == "🔄 Simple Update Check":
         update.message.reply_text('Simple Update Check is a basic tool which checks for any ever so small updates on a website. '+
@@ -116,6 +119,20 @@ def service(update: Update, context: CallbackContext):
 
 def joblist(update: Update, context: CallbackContext):
     """Processes the user input regarding the joblist"""
+    user = update.message.from_user
+    for Job in context.job_queue.jobs():
+        if update.message.text == Job.context.Name:
+            if update.message.chat_id == Job.context.ChatID:
+                update.message.reply_text(
+                    'Details of Job "' + str(Job.context.Name) + '"\n\n'
+                    'Service: ' + str(Job.context.Service) + '\n\n'
+                    'Count: ' + str(Job.context.Statistics["count"]) + '\n\n' 
+                    '# of Alarms: ' + str(Job.context.Statistics["alarm"]) + '\n\n' )
+                logger.info('%s Job "%s" has been selected by User %s', str(Job.context.Service), str(Job.context.Name), user.first_name)
+    return SERVICE
+
+def jobdelete(update: Update, context: CallbackContext):
+    """Processes the user input to delete a job"""
     user = update.message.from_user
     for Job in context.job_queue.jobs():
         if update.message.text == Job.context.Name:
@@ -137,12 +154,13 @@ def joblist(update: Update, context: CallbackContext):
 Implementation of SUC specific functions 
 """
 class SUC_Assignment:
-  def __init__(self, ChatID, Service, Name, Link, Stored_Update):
+  def __init__(self, ChatID, Service, Name, Link, Stored_Update, Statistics):
     self.ChatID = ChatID
     self.Service = Service
     self.Name = Name
     self.Link = Link
     self.Stored_Update = Stored_Update
+    self.Statistics = Statistics
 
 def suc_link(update: Update, context: CallbackContext) -> int:
     """Stores the Link provided by the user."""
@@ -157,14 +175,14 @@ def suc_link(update: Update, context: CallbackContext) -> int:
     except:
         update.message.reply_text("Something has gone terribly wrong. Maybe your link is not valid. Try again.")
         logger.info("Link from %s invalid and failed to download.", user.first_name)
-        return LINK
+        return SUC_LINK
     if data != None:
         update.message.reply_text(
             "I've checked your link and... everything checks out.")
     else:
         update.message.reply_text("Something has gone terribly wrong. There was no content on this website. Maybe your link is not valid. Try again.")
         logger.info("Link from %s invalid and content empty", user.first_name)
-        return LINK
+        return SUC_LINK
     logger.info('%s Link from %s is valid.', context.user_data['service'], user.first_name)
     #update.message.reply_text('Now send me as many Sizes as you want and press /finish if you are done.')
     update.message.reply_text(
@@ -184,7 +202,9 @@ def suc_interval(update: Update, context: CallbackContext) -> int:
             context.user_data['service'],
             context.user_data['name'],
             context.user_data['link'],
-            "")
+            "",
+            {"count": 0,"alarm": 0}
+            )
         context.job_queue.run_repeating(suc_alarm, int(update.message.text), context=a, name=str(chat_id))
         tmp_msg = 'Searching for updates on "' + context.user_data['link'] + '" every ' + str(update.message.text) + ' seconds.'
         update.message.reply_text(tmp_msg)
@@ -206,8 +226,11 @@ def suc_alarm(context: CallbackContext) -> None:
             context.bot.send_message(job.context.ChatID, text= "Update for " + job.context.Link)
             logger.info('%s Job "%s" found Update.', str(job.context.Service), str(job.context.Link))
             job.context.Stored_Update = data
+            job.context.Statistics["count"] += 1 
+            job.context.Statistics["alarm"] += 1 
         else:
             logger.info('%s Job "%s" found no Update.', str(job.context.Service), str(job.context.Link))
+            job.context.Statistics["count"] += 1 
             
     except:
         logger.info("Check not Successful. Try again later.")
@@ -216,13 +239,14 @@ def suc_alarm(context: CallbackContext) -> None:
 Implementation of SFS specific functions
 """
 class SFS_Assignment:
-  def __init__(self, ChatID, Service, Name, Link, Searchterm, Stored_Update):
+  def __init__(self, ChatID, Service, Name, Link, Searchterm, Stored_Update, Statistics):
     self.ChatID = ChatID
     self.Service = Service
     self.Name = Name
     self.Link = Link
     self.Searchterm = Searchterm
     self.Stored_Update = Stored_Update
+    self.Statistics = Statistics
 
 def sfs_link(update: Update, context: CallbackContext):
     """Stores the Link provided by the user."""
@@ -275,7 +299,8 @@ def sfs_interval(update: Update, context: CallbackContext) -> int:
             context.user_data['name'],
             context.user_data['link'],
             context.user_data['Searchterm'],
-            bool
+            bool,
+            {"count": 0,"alarm": 0}
             )
         context.job_queue.run_repeating(sfs_alarm, int(update.message.text), context=a, name=str(chat_id))
         tmp_msg = 'Searching for updates on "' + context.user_data['Searchterm'] + '" @ ' + context.user_data['link'] + ' every ' + str(update.message.text) + ' seconds.'
@@ -302,8 +327,11 @@ def sfs_alarm(context: CallbackContext) -> None:
             context.bot.send_message(job.context.ChatID, text= "Update for " + job.context.Link)
             logger.info('%s Job "%s" found Update.', str(job.context.Service), str(job.context.Link))
             job.context.Stored_Update = Term_Present
+            job.context.Statistics["count"] += 1 
+            job.context.Statistics["alarm"] += 1 
         else:
             logger.info('%s Job "%s" found no Update.', str(job.context.Service), str(job.context.Link))
+            job.context.Statistics["count"] += 1
             
     except:
         logger.info("Check not Successful. Try again later.")
@@ -313,13 +341,14 @@ def sfs_alarm(context: CallbackContext) -> None:
 Implementation of Zalando specific functions 
 """
 class Assignment:
-  def __init__(self, ChatID, Service, Link, Sizes, Name, Stored_Update):
+  def __init__(self, ChatID, Service, Link, Sizes, Name, Stored_Update, Statistics):
     self.ChatID = ChatID
     self.Service = Service
     self.Link = Link
     self.Sizes = Sizes
     self.Name = Name
     self.Stored_Update = Stored_Update
+    self.Statistics = Statistics
 
 def link(update: Update, context: CallbackContext) -> int:
     """Stores the Link provided by the user."""
@@ -388,7 +417,8 @@ def interval(update: Update, context: CallbackContext) -> int:
             context.user_data['link'],
             context.user_data['sizes'],
             context.user_data['name'],
-            [])
+            [],
+            {"count": 0,"alarm": 0})
         context.job_queue.run_repeating(alarm, int(update.message.text), context=a, name=str(chat_id))
         update.message.reply_text('Searching for "'+context.user_data['name']+'" in Size(s) ' + str(context.user_data['sizes']) + ' every ' + str(update.message.text) + ' seconds.')
 
