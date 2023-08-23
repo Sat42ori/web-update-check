@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # pylint: disable=C0116,W0613
-from auth import Token
+from auth import Token, Admin
 import logging
 import shortuuid
 from logic import *
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
-    Updater,
     Application,
     CommandHandler,
     MessageHandler,
@@ -18,6 +17,9 @@ from telegram.ext import (
     PicklePersistence,
     ContextTypes,
 )
+import html
+import traceback
+from telegram.constants import ParseMode
 
 # Enable logging
 logging.basicConfig(
@@ -287,6 +289,7 @@ async def sfs_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Stores the Link provided by the user."""
     user = update.message.from_user
     chat_id = update.message.chat_id
+    print(chat_id)
     #await update.message.reply_text(context.bot_data["jobstorage"].JobID)
     logger.info("%s Link received from %s: %s", context.user_data['service'], user.full_name, update.message.text)
     try:
@@ -549,11 +552,11 @@ async def handle_invalid_button(update: Update, context: ContextTypes.DEFAULT_TY
     #query.edit_message_text(text=f"Selected option: {query.data}")
 
 
-def cancel(update: Update, context: CallbackContext):
+async def cancel(update: Update, context: CallbackContext):
     """Cancels and ends the conversation."""
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.full_name)
-    update.message.reply_text(
+    await update.message.reply_text(
         'Bye! Press /start to start again.', reply_markup=ReplyKeyboardRemove()
     )
 
@@ -576,6 +579,28 @@ async def initialize_queue(application: Application):
     else:
         logger.info("Initializion failed, no jobstorage found")
              
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.error("Exception while handling an update:", exc_info=context.error)
+    # traceback.format_exception returns the usual python message about an exception, but as a
+    # list of strings rather than a single string, so we have to join them together.
+    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_string = "".join(tb_list)
+    # Build the message with some markup and additional information about what happened.
+    # You might need to add some logic to deal with messages longer than the 4096 character limit.
+    update_str = update.to_dict() if isinstance(update, Update) else str(update)
+    message = (
+        f"An exception was raised while handling an update\n"
+        f"<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}"
+        "</pre>\n\n"
+        f"<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n"
+        f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
+        f"<pre>context.bot_data = {html.escape(str(context.bot_data))}</pre>\n\n"
+        f"<pre>{html.escape(tb_string)}</pre>"
+    )
+    # Contacting Admin...
+    await context.bot.send_message(
+        chat_id=Admin, text=message, parse_mode=ParseMode.HTML
+    )
 
 def main() -> None:
     """Run the bot."""
@@ -621,7 +646,7 @@ def main() -> None:
     application.add_handler(
         CallbackQueryHandler(handle_invalid_button, pattern=InvalidCallbackData)
     )
-    
+    application.add_error_handler(error_handler)
     
     # Start the Bot
     
