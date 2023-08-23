@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 service_keyboard = [['🔄 Zalando', '🔄 Simple Update Check', '🔄 Search for ...', '🔄 Joblist']]
 
 SERVICE, LINK, SIZES, INTERVAL, JOBLIST, JOBSELECT, SUC_LINK, SUC_INTERVAL, SFS_LINK, SFS_SEARCHTERM, SFS_INTERVAL = range(11)
-Jobstorage = []
 
 class Callback:
   def __init__(self, Operation, Parameter=None):
@@ -111,7 +110,7 @@ async def save_to_jobstorage(assignment, context: ContextTypes.DEFAULT_TYPE):
     if context.bot_data.get("jobstorage") == None:
         context.bot_data["jobstorage"] = []
     context.bot_data["jobstorage"].append(assignment)
-    await context.application.persistence.flush()
+    await context.application.persistence.update_bot_data(context.bot_data)
     
 
 async def delete_from_jobstorage(JobID, context: ContextTypes.DEFAULT_TYPE):
@@ -119,7 +118,8 @@ async def delete_from_jobstorage(JobID, context: ContextTypes.DEFAULT_TYPE):
          for assignment in context.bot_data["jobstorage"]:
             if assignment.JobID == JobID:
                 context.bot_data["jobstorage"].remove(assignment)
-                await context.application.persistence.flush()
+                #await context.application.persistence.flush()
+                await context.application.persistence.update_bot_data(context.bot_data)
                 
 
 async def service(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -197,7 +197,6 @@ def jobdelete(update: Update, context: CallbackContext):
 """
 Implementation of SUC specific functions 
 """
-
 
 async def suc_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores the Link provided by the user."""
@@ -476,6 +475,7 @@ async def joblist_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     #query = update.effective_chat
     user = query.from_user
+    print(context.bot_data.get("jobstorage"))
  
     if query.data.Operation == "back_to_joblist":
         keyboard = []
@@ -535,7 +535,7 @@ async def joblist_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return ConversationHandler.END
     
-    await query.answer()
+    # await query.answer()
         # CallbackQueries need to be answered, even if no notification to the user is needed
         # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
 
@@ -546,10 +546,6 @@ async def handle_invalid_button(update: Update, context: ContextTypes.DEFAULT_TY
     await update.effective_message.edit_text(
         "Sorry, I could not process this button click 😕 Please send /start to get a new keyboard."
     )
-
-
-    
-
     #query.edit_message_text(text=f"Selected option: {query.data}")
 
 
@@ -564,7 +560,7 @@ def cancel(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 async def initialize_queue(application: Application):
-    #print(application.bot_data.get("jobstorage"))
+    print(application.bot_data.get("jobstorage"))
     if application.bot_data.get("jobstorage") != None:
         logger.info("Initializion started")  
         for assignment in application.bot_data["jobstorage"]:
@@ -585,16 +581,17 @@ def main() -> None:
     """Run the bot."""
     persistence = PicklePersistence(filepath="bot_storage", update_interval=60)
     # Create the Application and pass it your bot's token.
+    # Saved queue data can only be restored after the Application was initialized
     application = (
         Application.builder()
         .token(Token)
-        .post_init(initialize_queue)
+        .post_init(initialize_queue) 
         .persistence(persistence)
         .arbitrary_callback_data(True)
         .build()
     )
-    
-    
+
+
 
     # Add conversation handler with states
     conv_handler = ConversationHandler(
