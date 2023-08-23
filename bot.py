@@ -566,10 +566,10 @@ async def initialize_queue(application: Application):
         for assignment in application.bot_data["jobstorage"]:
             if assignment.Service == "🔄 Zalando":
                 application.job_queue.run_repeating(alarm, interval=assignment.Interval, data=assignment, name=str(assignment.JobID))
-                logger.info("Initialized JobID" + assignment.JobID)
+                logger.info("Initialized JobID " + assignment.JobID)
             if assignment.Service == "🔄 Simple Update Check":
                 application.job_queue.run_repeating(suc_alarm, interval=assignment.Interval, data=assignment, name=str(assignment.JobID))
-                logger.info("Initialized JobID" + assignment.JobID)
+                logger.info("Initialized JobID " + assignment.JobID)
             if assignment.Service == "🔄 Search for ...":
                 application.job_queue.run_repeating(sfs_alarm, interval=assignment.Interval, data=assignment, name=str(assignment.JobID))
                 logger.info("Initialized JobID " + assignment.JobID)
