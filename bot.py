@@ -588,6 +588,8 @@ def main() -> None:
         .post_init(initialize_queue) 
         .persistence(persistence)
         .arbitrary_callback_data(True)
+        .read_timeout(7)
+        .get_updates_read_timeout(7)
         .build()
     )
 
