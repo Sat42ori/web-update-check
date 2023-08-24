@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # pylint: disable=C0116,W0613
-from auth import Token, Admin
+from auth import Token, Admin, Whitelist
 import logging
 import shortuuid
 from logic import *
@@ -87,17 +87,36 @@ async def alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends the initial Message to the user"""
+    if Whitelist:
+        if await check_userlist(update.message.chat_id,context):
+            await update.message.reply_text(
+            'Hi! Welcome to the Update Bot\n'
+            'Send /cancel to stop talking to me.\n\n'
+            'What service do you need?',
+            reply_markup=ReplyKeyboardMarkup(
+                service_keyboard, one_time_keyboard=True, resize_keyboard=True, input_field_placeholder='Select checking Service'
+            )
+            )
+            return SERVICE
+        elif await check_userlist(update.message.chat_id,context) == False:
+            message = (
+                f"User {update.message.from_user.full_name} with ID {update.message.chat_id} wants to join\n"
+                f"<pre>/admin_join {update.message.chat_id}</pre>\n\n")
+            await context.bot.send_message(chat_id=Admin, text=message, parse_mode=ParseMode.HTML)
+            await update.message.reply_text('🔒 User not recognized. Contacting Admin... 📲\nPlease stand by for confirmation.')
+    else:
+        await update.message.reply_text(
+            'Hi! Welcome to the Update Bot\n'
+            'Send /cancel to stop talking to me.\n\n'
+            'What service do you need?',
+            reply_markup=ReplyKeyboardMarkup(
+                service_keyboard, one_time_keyboard=True, resize_keyboard=True, input_field_placeholder='Select checking Service'
+            )
+            )
+        return SERVICE
+    #await save_to_userlist(update.message.chat_id,context)
     
-    await update.message.reply_text(
-        'Hi! Welcome to the Update Bot\n'
-        'Send /cancel to stop talking to me.\n\n'
-        'What service do you need?',
-        reply_markup=ReplyKeyboardMarkup(
-            service_keyboard, one_time_keyboard=True, resize_keyboard=True, input_field_placeholder='Select checking Service'
-        )
-    )
-
-    return SERVICE
+    
 
 def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     """Helper function to build the next keyboard."""
@@ -107,6 +126,25 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     if footer_buttons:
         menu.append(footer_buttons)
     return menu
+
+async def save_to_userlist(UserID, context: ContextTypes.DEFAULT_TYPE):
+    if context.bot_data.get("userlist") != None:
+        if UserID not in context.bot_data["userlist"]:
+            context.bot_data["userlist"].append(UserID)
+    else:
+        context.bot_data["userlist"] = []
+    await context.application.persistence.update_bot_data(context.bot_data)
+
+async def check_userlist(UserID, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    if context.bot_data.get("userlist") != None:
+        if str(UserID) in context.bot_data["userlist"] or UserID == Admin:
+            return True
+        else:
+            return False 
+    else:
+        context.bot_data["userlist"] = []
+        return False
+     
 
 async def save_to_jobstorage(assignment, context: ContextTypes.DEFAULT_TYPE):
     if context.bot_data.get("jobstorage") == None:
@@ -611,6 +649,7 @@ async def admin(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
                 f"<pre>Bot Data</pre>\n"
                 f"<pre>context.bot_data = {html.escape(str(context.bot_data.get('jobstorage')))}</pre>\n\n"
                 f"<pre>Job queue = {html.escape(str(context.job_queue.jobs()))}</pre>\n\n"
+                f"<pre>Userlist = {html.escape(str(context.bot_data.get('userlist')))}</pre>\n\n"
             )
         for assignment in context.bot_data["jobstorage"]:
             message = message + f"<pre>ASSIGNMENT ID = {html.escape(str(assignment.JobID))}</pre>\n"
@@ -620,7 +659,7 @@ async def admin(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
             if len(str(a)) > 100:   
                 a = a[0:100]
             message = message + f"<pre>--> Stored Update: = {html.escape(str(a))}</pre>\n\n"
-        message = message + f"/admin_purge [queue/jobstorage]<pre> to purge data</pre>\n\n"
+        message = message + f"/admin_purge [queue/jobstorage/userlist]<pre> to purge data</pre>\n\n"
         message = message + f"/admin_delete [JobID/ChatID]<pre> to delete job from queue & jobstorage </pre>\n\n"
         if len(message) > 4096:   
                 a = a[0:4095]
@@ -633,6 +672,7 @@ async def admin_purge(update: object, context: ContextTypes.DEFAULT_TYPE) -> Non
         if len(context.args) >= 1:
             if context.args[0] == "jobstorage":
                 context.bot_data["jobstorage"] = []
+                await context.application.persistence.update_bot_data(context.bot_data)
                 # context.args[0]
                 message = (
                         f"<pre>Bot Data Jobstorage purged:</pre>\n"
@@ -643,6 +683,10 @@ async def admin_purge(update: object, context: ContextTypes.DEFAULT_TYPE) -> Non
                 for Job in context.job_queue.jobs():
                     Job.schedule_removal()
                 await update.message.reply_text('Queue deleted.')
+            elif context.args[0] == "userlist":
+                context.bot_data["userlist"] = []
+                await context.application.persistence.update_bot_data(context.bot_data)
+                await update.message.reply_text('Userlist deleted.')
             else:
                 await update.message.reply_text('Parameter not found')
         else:
@@ -668,6 +712,19 @@ async def admin_delete(update: object, context: ContextTypes.DEFAULT_TYPE) -> No
             await update.message.reply_text('Parameter not given')
     else:
         await update.message.reply_text('You are not Admin, disregarding request.')
+
+async def admin_join(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == Admin:
+        if len(context.args) >= 1:
+            await save_to_userlist(context.args[0], context)
+            await update.message.reply_text(f'User {context.args[0]} added.')
+            await context.bot.send_message(chat_id=context.args[0], text="🔓 Account unlocked! Press /start to continue.")
+            logger.info(f'Admin added User {context.args[0]}.')
+        else:
+            await update.message.reply_text('Parameter not given')
+    else:
+        await update.message.reply_text('You are not Admin, disregarding request.')
+
 
 def main() -> None:
     """Run the bot."""
@@ -710,7 +767,8 @@ def main() -> None:
                    CommandHandler('start', start),
                    CommandHandler('admin', admin),
                    CommandHandler('admin_purge', admin_purge),
-                   CommandHandler('admin_delete', admin_delete)],
+                   CommandHandler('admin_delete', admin_delete),
+                   CommandHandler('admin_join', admin_join)],
     )
     
     application.add_handler(conv_handler)
