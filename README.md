@@ -1,9 +1,9 @@
 # web-update-check
 Web Update Checker Tool with Telegram Integration:
 
-Stay effortlessly informed about website changes with our versatile Web Update Checker tool. 
-Whether you're monitoring "zalando.de" or any other site, this tool provides tailored functions to track updates efficiently.
-Receive notifications and alerts seamlessly through our Telegram bot interface, simplifying user interaction.
+Stay effortlessly informed about website changes with the versatile Web Update Checker tool.
+Whether you're monitoring "zalando.de" or any other site, this tool offers tailored functions to track updates efficiently.
+Receive notifications and alerts seamlessly through the Telegram bot interface, simplifying user interaction.
 
 ## Key Features:
 + Customizable functions to monitor various websites, including "zalando.de".
