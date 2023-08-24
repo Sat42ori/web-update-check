@@ -478,7 +478,7 @@ async def joblist_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     #query = update.effective_chat
     user = query.from_user
-    print(context.bot_data.get("jobstorage"))
+    #print(context.bot_data.get("jobstorage"))
  
     if query.data.Operation == "back_to_joblist":
         keyboard = []
@@ -597,10 +597,77 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         f"<pre>context.bot_data = {html.escape(str(context.bot_data))}</pre>\n\n"
         f"<pre>{html.escape(tb_string)}</pre>"
     )
+    if len(message) > 4096:
+        message = message[0:4095]
     # Contacting Admin...
     await context.bot.send_message(
         chat_id=Admin, text=message, parse_mode=ParseMode.HTML
     )
+
+async def admin(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == Admin:
+        message = (
+                f"<pre>HELLO ADMIN</pre>\n\n"
+                f"<pre>Bot Data</pre>\n"
+                f"<pre>context.bot_data = {html.escape(str(context.bot_data.get('jobstorage')))}</pre>\n\n"
+                f"<pre>Job queue = {html.escape(str(context.job_queue.jobs()))}</pre>\n\n"
+            )
+        for assignment in context.bot_data["jobstorage"]:
+            message = message + f"<pre>ASSIGNMENT ID = {html.escape(str(assignment.JobID))}</pre>\n"
+            message = message + f"<pre>--> Name: = {html.escape(str(assignment.Name))}</pre>\n"
+            message = message + f"<pre>--> ChatID: = {html.escape(str(assignment.ChatID))}</pre>\n"
+            a = assignment.Stored_Update
+            if len(str(a)) > 100:   
+                a = a[0:100]
+            message = message + f"<pre>--> Stored Update: = {html.escape(str(a))}</pre>\n\n"
+        message = message + f"/admin_purge [queue/jobstorage]<pre> to purge data</pre>\n\n"
+        message = message + f"/admin_delete [JobID/ChatID]<pre> to delete job from queue & jobstorage </pre>\n\n"
+        if len(message) > 4096:   
+                a = a[0:4095]
+        await context.bot.send_message(chat_id=Admin, text=message, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text('You are not Admin, disregarding request.')
+
+async def admin_purge(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == Admin:
+        if len(context.args) >= 1:
+            if context.args[0] == "jobstorage":
+                context.bot_data["jobstorage"] = []
+                # context.args[0]
+                message = (
+                        f"<pre>Bot Data Jobstorage purged:</pre>\n"
+                        f"<pre>context.bot_data = {html.escape(str(context.bot_data.get('jobstorage')))}</pre>\n\n"
+                    )
+                await context.bot.send_message(chat_id=Admin, text=message, parse_mode=ParseMode.HTML)
+            elif context.args[0] == "queue":
+                for Job in context.job_queue.jobs():
+                    Job.schedule_removal()
+                await update.message.reply_text('Queue deleted.')
+            else:
+                await update.message.reply_text('Parameter not found')
+        else:
+            await update.message.reply_text('Parameter not given')
+    else:
+        await update.message.reply_text('You are not Admin, disregarding request.')
+
+async def admin_delete(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == Admin:
+        if len(context.args) >= 1:
+            for Job in context.job_queue.jobs():
+                if context.args[0] == Job.data.JobID:
+                    await delete_from_jobstorage(Job.data.JobID, context)
+                    Job.schedule_removal()
+                    await update.message.reply_text('Deleted: ' + Job.data.JobID )
+                    logger.info("Admin deleted JobID " + Job.data.JobID)
+                elif context.args[0] == str(Job.data.ChatID):
+                    await delete_from_jobstorage(Job.data.JobID, context)
+                    Job.schedule_removal()
+                    await update.message.reply_text('Deleted via ChatID: ' + Job.data.JobID )
+                    logger.info("Admin deleted JobID " + Job.data.JobID)
+        else:
+            await update.message.reply_text('Parameter not given')
+    else:
+        await update.message.reply_text('You are not Admin, disregarding request.')
 
 def main() -> None:
     """Run the bot."""
@@ -639,7 +706,11 @@ def main() -> None:
             SFS_SEARCHTERM: [MessageHandler(filters.TEXT & ~filters.COMMAND, sfs_searchterm)],
             SFS_INTERVAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sfs_interval)],
         },
-        fallbacks=[CommandHandler('cancel', cancel), CommandHandler('start', start)],
+        fallbacks=[CommandHandler('cancel', cancel),
+                   CommandHandler('start', start),
+                   CommandHandler('admin', admin),
+                   CommandHandler('admin_purge', admin_purge),
+                   CommandHandler('admin_delete', admin_delete)],
     )
     
     application.add_handler(conv_handler)
