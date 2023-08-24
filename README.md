@@ -38,4 +38,4 @@ Experience uninterrupted workflow with the Persistence feature. Your bot now sto
 Enhance your bot's security with the Whitelist feature. When enabled, only registered users or the admin can access the bot. The admin can add users using the command /admin_join {ChatID}. By default, this feature is turned off, ensuring flexible access control.
 
 ### 🛠️ Admin Interface:
-Empower administrators with the Admin Interface, a hassle-free way to manage essential functions on the go, without the need for direct server access. Use commands like /admin_purge [queue/jobstorage/userlist] to clean up, /admin_delete [JobID/ChatID] to remove specific items, and /admin_join to effortlessly add users to the whitelist.
+Empower administrators with the Admin Interface, a hassle-free way to manage essential functions on the go, without the need for direct server access. Use commands like /admin_purge to clean up, /admin_delete to remove specific items, and /admin_join to effortlessly add users to the whitelist.
