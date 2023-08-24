@@ -34,8 +34,8 @@ Adapt the tool to various websites by searching for specific strings in the webs
 ### 💾 Persistence Feature:
 Experience uninterrupted workflow with the Persistence feature. Your bot now stores Assignments and seamlessly restores them automatically. Plus, the bot saves statistics at regular 60-second intervals, ensuring no data is lost.
 
-### 🔒 Whitelist Feature:
-Enhance your bot's security with the Whitelist feature. When enabled, only registered users or the admin can access the bot. The admin can add users using the command /admin_join {ChatID}. By default, this feature is turned off, ensuring flexible access control.
+### 🔒 Whitelist Featureca
+Enhance your bot's security with the Whitelist feature. When enabled, only registered users or the admin can access the bot. The admin can add users using the command /admin_join {ChatID}. This feature can be turned off in "auth.py", ensuring flexible access control.
 
 ### 🛠️ Admin Interface:
 Empower administrators with the Admin Interface, a hassle-free way to manage essential functions on the go, without the need for direct server access. Use commands like /admin_purge to clean up, /admin_delete to remove specific items, and /admin_join to effortlessly add users to the whitelist.
