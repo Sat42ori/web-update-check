@@ -732,7 +732,7 @@ def main() -> None:
     # Create the Application and pass it your bot's token.
     # Saved queue data can only be restored after the Application was initialized
     application = (
-        Application.builder()._get_updates_connect_timeout
+        Application.builder()
         .token(Token)
         .post_init(initialize_queue) 
         .persistence(persistence)
