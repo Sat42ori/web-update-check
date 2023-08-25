@@ -635,7 +635,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         f"<pre>{html.escape(tb_string)}</pre>"
     )
     if len(message) > 4096:
-        message = message[0:4095]
+        message = message[0:4080] + "</pre>"
     # Contacting Admin...
     await context.bot.send_message(
         chat_id=Admin, text=message, parse_mode=ParseMode.HTML
@@ -732,13 +732,14 @@ def main() -> None:
     # Create the Application and pass it your bot's token.
     # Saved queue data can only be restored after the Application was initialized
     application = (
-        Application.builder()
+        Application.builder()._get_updates_connect_timeout
         .token(Token)
         .post_init(initialize_queue) 
         .persistence(persistence)
         .arbitrary_callback_data(True)
         .read_timeout(7)
         .get_updates_read_timeout(7)
+
         .build()
     )
 
