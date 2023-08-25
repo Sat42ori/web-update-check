@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # pylint: disable=C0116,W0613
-from auth import Token, Admin, Whitelist
+from auth import *
 import logging
 import shortuuid
 from logic import *
@@ -628,8 +628,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     update_str = update.to_dict() if isinstance(update, Update) else str(update)
     message = (
         f"An exception was raised while handling an update\n"
-        f"<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}"
-        "</pre>\n\n"
+        f"<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}</pre>\n\n"
         f"<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n"
         f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
         f"<pre>context.bot_data = {html.escape(str(context.bot_data))}</pre>\n\n"
@@ -661,6 +660,7 @@ async def admin(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
             message = message + f"<pre>--> Stored Update: = {html.escape(str(a))}</pre>\n\n"
         message = message + f"/admin_purge [queue/jobstorage/userlist]<pre> to purge data</pre>\n\n"
         message = message + f"/admin_delete [JobID/ChatID]<pre> to delete job from queue & jobstorage </pre>\n\n"
+        message = message + f"/admin_join [JobID]<pre> to whitelist user.</pre>\n\n"
         if len(message) > 4096:   
                 a = a[0:4095]
         await context.bot.send_message(chat_id=Admin, text=message, parse_mode=ParseMode.HTML)
