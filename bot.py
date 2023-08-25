@@ -739,7 +739,7 @@ def main() -> None:
         .arbitrary_callback_data(True)
         .read_timeout(7)
         .get_updates_read_timeout(7)
-
+        .pool_timeout(3)
         .build()
     )
 
