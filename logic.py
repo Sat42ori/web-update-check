@@ -29,7 +29,7 @@ def download_zalando_json(URL):
         str_index = txt.index('},"errors":[')
         txt = txt[:str_index+1]
         txt = '[' + txt + ']'
-        print(txt)
+        #print(txt)
         return txt
     except:
         print('Error: Zalando JSON Data not found.')
