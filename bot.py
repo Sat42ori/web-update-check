@@ -68,7 +68,7 @@ async def alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
                 else:
                     message = message + "\nSize " + size + " is available!"
             if was_soldout != is_soldout:
-                if job.data.Statistics["cont"] >= 1:
+                if job.data.Statistics["count"] >= 1:
                     await context.bot.send_message(job.data.ChatID, text= "Update for " + job.data.Name + message + "\n" + job.data.Link)
                     job.data.Statistics["alarm"] += 1 
                 logger.info('%s Job "%s" found Availability-Update: %s', str(job.data.Service), str(job.data.Name), str(available_sizes))
