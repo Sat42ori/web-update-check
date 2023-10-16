@@ -15,7 +15,7 @@ def download(URL):
     except Exception as err:
         print(f'Connection Error: {err}')
     else:
-        #print('Connection Successful!')
+        print('Connection Successful!')
         txt = response.content.decode("utf-8") 
         return txt
 
@@ -28,6 +28,7 @@ def download_zalando_json(URL):
         str_index = txt.index('},"errors":[')
         txt = txt[:str_index+1]
         txt = '[' + txt + ']'
+        print(txt)
         return txt
     except:
         print('Error: Zalando JSON Data not found.')
@@ -98,4 +99,4 @@ def test(URL, search_sizes: List):
     except:
         print ("Check not Successful. Try again later.")
 
-#test("https://www.zalando.de/the-north-face-hooded-dress-zumu-freizeitkleid-black-th321c007-q11.html",['M','XS'])
+#test("https://www.zalando.de/triumph-shapewear-white-tr581c00x-a11.html",['M','XS'])

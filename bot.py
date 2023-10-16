@@ -442,6 +442,7 @@ async def link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     except:
         await update.message.reply_text("Something has gone terribly wrong. Maybe your link is not a Zalando link. Try again.")
         logger.info("Link from %s invalid", user.full_name)
+        logger.info("Link from %s invalid", user.full_name)
         return LINK
     logger.info('%s Link from %s is valid. Name set to "%s"', context.user_data['service'], user.full_name, context.user_data['name'])
     #update.message.reply_text('Now send me as many Sizes as you want and press /finish if you are done.')
