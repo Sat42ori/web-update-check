@@ -16,7 +16,7 @@ def download(URL):
     except Exception as err:
         print(f'Connection Error: {err}')
     else:
-        print('Connection Successful!')
+        #print('Connection Successful!')
         txt = response.content.decode("utf-8") 
         return txt
 

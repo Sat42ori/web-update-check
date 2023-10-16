@@ -68,7 +68,7 @@ async def alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
                 else:
                     message = message + "\nSize " + size + " is available!"
             if was_soldout != is_soldout:
-                if job.data.Statistics["count"] >= 1:
+                if job.data.Statistics["cont"] >= 1:
                     await context.bot.send_message(job.data.ChatID, text= "Update for " + job.data.Name + message + "\n" + job.data.Link)
                     job.data.Statistics["alarm"] += 1 
                 logger.info('%s Job "%s" found Availability-Update: %s', str(job.data.Service), str(job.data.Name), str(available_sizes))
@@ -84,6 +84,16 @@ async def alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
             
     except:
         logger.info("Check not Successful. Try again later.")
+        message = (
+            f"Check not Successful:\n"
+            f"<pre>JobID = {html.escape(str(job.data.JobID))}\n"
+            f"Name = {html.escape(str(job.data.Name))}\n"
+            f"ChatID = {html.escape(str(job.data.ChatID))}</pre>"
+            )
+        # Contacting Admin...
+        await context.bot.send_message(
+            chat_id=Admin, text=message, parse_mode=ParseMode.HTML
+        )   
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends the initial Message to the user"""
