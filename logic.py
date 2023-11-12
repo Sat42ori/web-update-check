@@ -2,13 +2,17 @@ from typing import List
 import requests
 import json
 from requests.exceptions import HTTPError
+from fake_http_header import FakeHttpHeader
+
 
 def download(URL):
     """Downloads the content of the given Link and returns plain text"""
     try:
         #header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'} 
-        header = {'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Mobile Safari/537.36'}
-        response = requests.get(URL, headers=header)
+        #header = {'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Mobile Safari/537.36'}
+        fake_header = FakeHttpHeader(domain_name = 'de')
+        fake_header_dict = fake_header.as_header_dict()
+        response = requests.get(URL, headers=fake_header_dict )
         # If the response was successful, no Exception will be raised
         response.raise_for_status()
     except HTTPError as http_err:
