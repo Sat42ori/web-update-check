@@ -640,9 +640,9 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     message = (
         f"An exception was raised while handling an update\n"
         f"<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}</pre>\n\n"
-        f"<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n"
-        f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
-        f"<pre>context.bot_data = {html.escape(str(context.bot_data))}</pre>\n\n"
+        f"context.chat_data = {html.escape(str(context.chat_data))}\n\n"
+        f"context.user_data = {html.escape(str(context.user_data))}\n\n"
+        f"context.bot_data = {html.escape(str(context.bot_data))}</pre>\n\n"
         f"<pre>{html.escape(tb_string)}</pre>"
     )
     if len(message) > 4096:
@@ -655,23 +655,24 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 async def admin(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.chat_id == Admin:
         message = (
-                f"<pre>HELLO ADMIN</pre>\n\n"
-                f"<pre>Bot Data</pre>\n"
-                f"<pre>context.bot_data = {html.escape(str(context.bot_data.get('jobstorage')))}</pre>\n\n"
-                f"<pre>Job queue = {html.escape(str(context.job_queue.jobs()))}</pre>\n\n"
-                f"<pre>Userlist = {html.escape(str(context.bot_data.get('userlist')))}</pre>\n\n"
+                f"<pre>▫️▫️▫️ HELLO ADMIN ▫️▫️▫️\n\n"
+                f"Bot Data\n"
+                f"context.bot_data = {html.escape(str(context.bot_data.get('jobstorage')))}\n\n"
+                f"Job queue = {html.escape(str(context.job_queue.jobs()))}\n\n"
+                f"Userlist = {html.escape(str(context.bot_data.get('userlist')))}</pre>\n\n"
             )
         for assignment in context.bot_data["jobstorage"]:
-            message = message + f"<pre>ASSIGNMENT ID = {html.escape(str(assignment.JobID))}</pre>\n"
-            message = message + f"<pre>--> Name: = {html.escape(str(assignment.Name))}</pre>\n"
-            message = message + f"<pre>--> ChatID: = {html.escape(str(assignment.ChatID))}</pre>\n"
+            message = message + f"<pre>ASSIGNMENT ID = {html.escape(str(assignment.JobID))}\n"
+            message = message + f"--> Name: = {html.escape(str(assignment.Name))}\n"
+            message = message + f"--> ChatID: = {html.escape(str(assignment.ChatID))}\n"
             a = assignment.Stored_Update
             if len(str(a)) > 100:   
                 a = a[0:100]
-            message = message + f"<pre>--> Stored Update: = {html.escape(str(a))}</pre>\n\n"
-        message = message + f"/admin_purge [queue/jobstorage/userlist]<pre> to purge data</pre>\n\n"
-        message = message + f"/admin_delete [JobID/ChatID]<pre> to delete job from queue & jobstorage </pre>\n\n"
-        message = message + f"/admin_join [JobID]<pre> to whitelist user.</pre>\n\n"
+            message = message + f"--> Stored Update: = {html.escape(str(a))}</pre>\n\n"
+        message = message + f"🤖 Admin Commands:\n"
+        message = message + f"🔥 Purge data: <pre>/admin_purge [queue/jobstorage/userlist]</pre>\n"
+        message = message + f"🗑️ Delete job from queue & jobstorage: <pre>/admin_delete [JobID/ChatID]</pre>\n"
+        message = message + f"🆗 Whitelist user:<pre>/admin_join [UserID]</pre>\n"
         if len(message) > 4096:   
                 a = a[0:4095]
         await context.bot.send_message(chat_id=Admin, text=message, parse_mode=ParseMode.HTML)
