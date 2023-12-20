@@ -673,6 +673,7 @@ async def admin(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
         message = message + f"🔥 Purge data: <pre>/admin_purge [queue/jobstorage/userlist]</pre>\n"
         message = message + f"🗑️ Delete job from queue & jobstorage: <pre>/admin_delete [JobID/ChatID]</pre>\n"
         message = message + f"🆗 Whitelist user:<pre>/admin_join [UserID]</pre>\n"
+        message = message + f"💬 Message to user:<pre>/admin_message [UserID/userlist] [Message]</pre>\n"
         if len(message) > 4096:   
                 a = a[0:4095]
         await context.bot.send_message(chat_id=Admin, text=message, parse_mode=ParseMode.HTML)
@@ -722,6 +723,24 @@ async def admin_delete(update: object, context: ContextTypes.DEFAULT_TYPE) -> No
                     logger.info("Admin deleted JobID " + Job.data.JobID)
         else:
             await update.message.reply_text('Parameter not given')
+    else:
+        await update.message.reply_text('You are not Admin, disregarding request.')
+
+async def admin_message(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == Admin:
+        if len(context.args) >= 2:
+            if context.args[0] == "userlist":
+                a = " ".join(context.args[1:])
+                for i in context.bot_data["userlist"]:
+                    await context.bot.send_message(chat_id=i, text=a)
+                    await update.message.reply_text(f'Message sent via Userlist to {i}.')
+                    logger.info(f'Admin sent Message to Userlist.')
+            else:
+                await context.bot.send_message(chat_id=context.args[0], text=" ".join(context.args[1:]))
+                await update.message.reply_text(f'Message sent to {context.args[0]}.')
+                logger.info(f'Admin sent Message to User {context.args[0]}.')
+        else:
+            await update.message.reply_text('Parameters not given')
     else:
         await update.message.reply_text('You are not Admin, disregarding request.')
 
@@ -781,6 +800,7 @@ def main() -> None:
                    CommandHandler('admin', admin),
                    CommandHandler('admin_purge', admin_purge),
                    CommandHandler('admin_delete', admin_delete),
+                   CommandHandler('admin_message', admin_message),
                    CommandHandler('admin_join', admin_join)],
     )
     
