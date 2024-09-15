@@ -20,7 +20,7 @@ Admin = Your ChatID as int
 Whitelist = Your Setting as bool
 ```
 ### Dependencies:
-Using "requests", "json" and "telegram" libraries.
+Using "requests", "json", "beautifulsoup" and "telegram" libraries.
 
 ## Additional Features: 
 
