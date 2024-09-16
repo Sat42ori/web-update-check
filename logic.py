@@ -22,7 +22,7 @@ def download(URL, asRawResponse=False):
     else:
         #print('Connection Successful!')
         if asRawResponse:
-            return response.content
+            return response
         else:
             txt = response.content.decode("utf-8") 
             return txt

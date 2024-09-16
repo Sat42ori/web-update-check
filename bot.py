@@ -512,11 +512,11 @@ async def sil_alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
     job = context.job
     try:
         # Download the HTML content from the link
-        html_content = download(job.data.Link, True)
+        response = download(job.data.Link, True)
         #with open("a.html", 'r', encoding='utf-8') as html_file:
         # html_content = html_file.read()
         # Parse the HTML content using BeautifulSoup
-        soup = BeautifulSoup(html_content, 'html.parser')
+        soup = BeautifulSoup(response.content, 'html.parser')
         
         # Try to find an element by ID first
         target_element = soup.find(id=job.data.Search_For)
@@ -562,7 +562,7 @@ async def sil_alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
         job.data.Stored_Update = current_element_list
         job.data.Statistics["count"] += 1
     except Exception as e:
-        logger.info("Check not successful. Error: %s. Try again later.", str(e))
+        logger.info("Check of " +str(job.data.Link)+" not successful. Error: %s. Try again later.", str(e))
 
 
 """
