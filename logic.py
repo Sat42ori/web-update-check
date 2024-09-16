@@ -15,6 +15,7 @@ def download(URL, asRawResponse=False):
         response = requests.get(URL, headers=fake_header_dict )
         # If the response was successful, no Exception will be raised
         response.raise_for_status()
+        
     except HTTPError as http_err:
         print(f'HTTP Error: {http_err}')
     except Exception as err:
