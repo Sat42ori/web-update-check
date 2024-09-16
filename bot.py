@@ -512,7 +512,7 @@ async def sil_alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
     job = context.job
     try:
         # Download the HTML content from the link
-        response = download(job.data.Link)
+        response = download_response(job.data.Link)
         html_content = response.content
         #with open("a.html", 'r', encoding='utf-8') as html_file:
         # html_content = html_file.read()
