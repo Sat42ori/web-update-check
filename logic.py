@@ -5,7 +5,7 @@ from requests.exceptions import HTTPError
 from fake_http_header import FakeHttpHeader
 
 
-def download(URL):
+def download(URL, asRawResponse=False):
     """Downloads the content of the given Link and returns plain text"""
     try:
         #header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'} 
@@ -21,25 +21,11 @@ def download(URL):
         print(f'Connection Error: {err}')
     else:
         #print('Connection Successful!')
-        txt = response.content.decode("utf-8") 
-        return txt
-    
-def download_response(URL):
-    """Downloads the content of the given Link and returns the response"""
-    try:
-        #header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'} 
-        #header = {'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Mobile Safari/537.36'}
-        fake_header = FakeHttpHeader(domain_name = 'de')
-        fake_header_dict = fake_header.as_header_dict()
-        response = requests.get(URL, headers=fake_header_dict )
-        # If the response was successful, no Exception will be raised
-        response.raise_for_status()
-    except HTTPError as http_err:
-        print(f'HTTP Error: {http_err}')
-    except Exception as err:
-        print(f'Connection Error: {err}')
-    else:
-        return response
+        if asRawResponse:
+            return response
+        else:
+            txt = response.content.decode("utf-8") 
+            return txt
 
 def download_zalando_json(URL):
     """Downloads the given Zalando Link and locates the relevant JSON Data. Returns JSON Data ready to parse."""
