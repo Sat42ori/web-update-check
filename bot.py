@@ -2,6 +2,7 @@
 # pylint: disable=C0116,W0613
 from auth import *
 import logging
+import re
 import shortuuid
 from logic import *
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -519,6 +520,8 @@ async def sil_alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
             logger.info("Failed to fetch the webpage.")
             return
         
+        #with open("a.html", 'r', encoding='utf-8') as html_file:
+           # html_content = html_file.read()
         # Parse the HTML content using BeautifulSoup
         soup = BeautifulSoup(html_content, 'html.parser')
         
@@ -535,39 +538,36 @@ async def sil_alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
             
             # Extract unique content/identifiers of each element (e.g., its HTML or any other identifiable attribute)
             current_element_list = [str(element) for element in child_elements]
+
+            # Remove any timestamps ('ts=[numbers]') from the list
+            cleaned_list = []
+            for element in current_element_list:
+                cleaned_element = re.sub(r'ts=\d+', '', element).strip()
+                cleaned_list.append(cleaned_element)
+            current_element_list = cleaned_list
         else:
             logger.info("No element found with the specified ID or class.")
             return
 
-        # Check if there is a previous record of the elements (stored as a list)
-        if not hasattr(job.data, "Stored_Update") or not isinstance(job.data.Stored_Update, list):
-            # If no previous record exists or it's not initialized as a list, initialize it
-            job.data.Stored_Update = current_element_list
-            job.data.Statistics["count"] = 1  # Initialize the count statistic
-            logger.info("Initialized element list for the first time.")
-            return
 
-        # Find new elements by checking if any elements in current_element_list are not in Stored_Update
-        new_elements = [element for element in current_element_list if element not in job.data.Stored_Update]
+        new_elements = set(current_element_list) - set(job.data.Stored_Update)
 
-        # Only notify if there are new elements added
-        if new_elements:
+        if not new_elements:
+            logger.info('%s Job "%s" found no new elements.', str(job.data.Service), str(job.data.Link))
+        else: 
             if job.data.Statistics["count"] >= 1:
                 await context.bot.send_message(
-                    job.data.ChatID, 
-                    text=f"Update for {job.data.Link}: New element(s) added to the list with ID or class {job.data.Search_For}"
-                )
+                        job.data.ChatID, 
+                        text=f"Update for {job.data.Link}: New element(s) added to the list with ID or class {job.data.Search_For}"
+                    )
                 job.data.Statistics["alarm"] += 1
-            
-            logger.info('%s Job "%s" found an update: New elements added to the list.', str(job.data.Service), str(job.data.Link))
-            
-            # Update the stored list with the current one
-            job.data.Stored_Update = current_element_list
-            job.data.Statistics["count"] += 1
-        else:
-            logger.info('%s Job "%s" found no new elements.', str(job.data.Service), str(job.data.Link))
-            job.data.Statistics["count"] += 1
+                logger.info('%s Job "%s" found an update: New elements added to the list.', str(job.data.Service), str(job.data.Link))
+            else:
+                logger.info("Initialized element set for the first time.")
 
+
+        job.data.Stored_Update = current_element_list
+        job.data.Statistics["count"] += 1
     except Exception as e:
         logger.info("Check not successful. Error: %s. Try again later.", str(e))
 
