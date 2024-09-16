@@ -512,13 +512,8 @@ async def sil_alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
     job = context.job
     try:
         # Download the HTML content from the link
-        response = requests.get(job.data.Link)
-        if response.status_code == 200:
-            html_content = response.content
-        else:
-            logger.info("Failed to fetch the webpage "+job.data.Link+". Status: " + str(response.status_code))
-            return
-        
+        response = download(job.data.Link)
+        html_content = response.content
         #with open("a.html", 'r', encoding='utf-8') as html_file:
         # html_content = html_file.read()
         # Parse the HTML content using BeautifulSoup
